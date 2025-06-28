@@ -4,29 +4,50 @@ name: Publish to GitHub Packages
 
 on:
   push:
-    tags: ['v*'] # Trigger workflow on version tag push
+    tags: ['v*'] # Run workflow only when pushing a tag starting with 'v'
 
 permissions:
   contents: read
-  packages: write # Allow writing to GitHub Packages
+  packages: write # Required for publishing to GitHub Packages
 
 jobs:
   publish:
-    runs-on: ubuntu-latest # Use latest Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Check out the repository code
       - name: Checkout code
-        uses: actions/checkout@v4 # Check out repository code
+        uses: actions/checkout@v4
 
-      - name: Set up Java and Auth
+      # Step 2: Set up Java environment (Temurin distribution, version 17)
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin # Use Eclipse Temurin JDK
-          java-version: 17 # Set Java version to 17
-          server-id: github # Maven server ID for GitHub Packages
-          server-username: ${{ github.actor }} # GitHub username
-          server-password: ${{ secrets.GH_PACKAGES_TOKEN }} # GitHub Packages token
+          distribution: temurin
+          java-version: 17
 
+      # Step 3: Create the Maven settings.xml file with GitHub credentials
+      # This ensures Maven can authenticate to GitHub Packages using your PAT secret
+      - name: Configure Maven for GitHub Packages
+        run: |
+          mkdir -p $HOME/.m2
+          cat > $HOME/.m2/settings.xml <<EOF
+          <settings>
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.actor }}</username>
+                <password>${{ secrets.GH_PACKAGES_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      # Step 4: Deploy the package using Maven
+      # -X for debug output, --no-transfer-progress to reduce log noise
+      # The working-directory is set to 'common-dto', adjust if your pom.xml is elsewhere
       - name: Deploy package
-        run: mvn -X deploy --no-transfer-progress # Deploy Maven package
-        working-directory: common-dto # Set working directory to 'common-dto'
+        run: mvn -X deploy --no-transfer-progress
+        working-directory: common-dto
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
