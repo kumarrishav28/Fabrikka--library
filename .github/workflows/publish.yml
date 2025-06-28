@@ -28,5 +28,5 @@ jobs:
           server-password: ${{ secrets.GH_PACKAGES_TOKEN }} # GitHub Packages token
 
       - name: Deploy package
-        run: mvn deploy --no-transfer-progress # Deploy Maven package
+        run: mvn -X deploy --no-transfer-progress # Deploy Maven package
         working-directory: common-dto # Set working directory to 'common-dto'
