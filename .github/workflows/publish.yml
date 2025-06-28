@@ -1,0 +1,32 @@
+# GitHub Actions workflow to publish Maven package to GitHub Packages
+
+name: Publish to GitHub Packages
+
+on:
+  push:
+    tags: ['v*'] # Trigger workflow on version tag push
+
+permissions:
+  contents: read
+  packages: write # Allow writing to GitHub Packages
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest # Use latest Ubuntu runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Check out repository code
+
+      - name: Set up Java and Auth
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin # Use Eclipse Temurin JDK
+          java-version: 17 # Set Java version to 17
+          server-id: github # Maven server ID for GitHub Packages
+          server-username: ${{ github.actor }} # GitHub username
+          server-password: ${{ secrets.GH_PACKAGES_TOKEN }} # GitHub Packages token
+
+      - name: Deploy package
+        run: mvn deploy --no-transfer-progress # Deploy Maven package
+        working-directory: common-dto # Set working directory to 'common-dto'
